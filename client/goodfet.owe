@@ -16,11 +16,15 @@ if(len(sys.argv)==1):
     print "%s readtemp" % sys.argv[0];
     sys.exit();
 
+sys.stdout.write("Initialising...\n")
+
 #Initialize FET and set baud rate
 client=GoodFETowe();
 client.serInit()
 
 client.setup()
+
+sys.stdout.write("Ready...\n")
 
 if(sys.argv[1]=="readrom"):
     #Read Serial Nb
@@ -67,14 +71,17 @@ def searchROM(state):
         b = b | (client.readBit() << 1);
         b = b | (client.readBit() << 0);
         if b == 0b01:   # 01 -> 0
+            #print "0 at bit %r" % bit
             # This bit of the address is 0 for all devices in this subtree.
             b = 0;
 
         elif b == 0b10: # 10 -> 1
+            #print "1 at bit %r" % bit
             # This bit of the address is 1 for all devices in this subtree.
             b = 1;
 
         elif b == 0b00: # 00 -> Conflict
+            print "Conflict at bit %r" % bit
             if bit < state.conflict:
                 # Choose the path we chose last time because there are more
                 # conflicts in that subtree.
@@ -113,6 +120,7 @@ def searchROM(state):
                 assert 0, "Unexpected condition in SearchROM! bit = %r, address = %r, conflict = %r, state = %r" % (bit, address, conflict, state);
 
         elif b == 0b11: # 11 -> No devices
+            #print "X at bit %r" % bit
             # This can only happen when we're at the first bit.
             assert (bit == 0), "Search ROM: unexpectedly received 'No devices'!";
             assert (address == 0), "Search ROM: received 'No devices' but addr is %r" % addr;
@@ -151,6 +159,7 @@ if(sys.argv[1]=="searchrom"):
     while True:
         current = searchROM(previous);
         if current == False:
+            print "(conflict = %r, address = %x)" % (previous.conflict, previous.address);
             print "No devices found or bus pulled high!";
             break;
 
@@ -159,6 +168,7 @@ if(sys.argv[1]=="searchrom"):
 
         else:
             print "Found ROM: %x" % current.address;
+            print "(conflict = %r, address = %x)" % (current.conflict, current.address);
             readTemp();
             previous = current;
 
